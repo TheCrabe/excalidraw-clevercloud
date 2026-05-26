@@ -1,4 +1,6 @@
-# 06 — Terraform (reproducible infra)
+# 05 — Terraform (reproducible infra)
+
+> 📖 **Background**: [`notions/terraform-on-clevercloud.md`](../notions/terraform-on-clevercloud.md) explains the provider's auth model, the deliberate "infra vs code shipping" split, the `dependencies` attribute, and how to use Cellar as a remote backend for TF state itself. Read it first to know what Terraform manages here and (importantly) what it does NOT.
 
 Goal: replace the manual `clever create / env set / deploy` with declarative HCL. Terraform provisions the apps + add-ons; `git push clever master` still ships the code.
 
@@ -7,10 +9,10 @@ Goal: replace the manual `clever create / env set / deploy` with declarative HCL
 ```mermaid
 graph TD
     vars["var.organisation<br/>var.domain<br/>var.region"]
-    cellar["clevercloud_addon<br/>excalidraw-cellar"]
-    storage["clevercloud_nodejs<br/>excalidraw-storage"]
-    room["clevercloud_nodejs<br/>excalidraw-room"]
-    front["clevercloud_static<br/>excalidraw-frontend<br/>+ vhost"]
+    cellar["clevercloud_addon<br/>excalidraw.cellar"]
+    storage["clevercloud_nodejs<br/>excalidraw.storage"]
+    room["clevercloud_nodejs<br/>excalidraw.room"]
+    front["clevercloud_static<br/>excalidraw.frontend<br/>+ vhost"]
 
     vars --> cellar
     vars --> storage
@@ -59,7 +61,7 @@ provider "clevercloud" {
 ```hcl
 variable "organisation" {
   type        = string
-  description = "CC org ID, user_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  description = "CC org or user ID (user_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
 }
 
 variable "region" {
@@ -76,7 +78,7 @@ variable "domain" {
 ## `terraform.tfvars` (gitignored)
 
 ```hcl
-organisation = "user_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+organisation = "user_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"   # your CC org or user ID
 domain       = "draw.example.com"
 ```
 
@@ -84,7 +86,7 @@ domain       = "draw.example.com"
 
 ```hcl
 resource "clevercloud_addon" "cellar" {
-  name        = "excalidraw-cellar"
+  name        = "excalidraw.cellar"
   provider_id = "cellar-addon"
   plan        = "S"
   region      = var.region
@@ -95,12 +97,12 @@ resource "clevercloud_addon" "cellar" {
 
 ```hcl
 resource "clevercloud_nodejs" "storage" {
-  name               = "excalidraw-storage"
+  name               = "excalidraw.storage"
   region             = var.region
   min_instance_count = 1
-  max_instance_count = 1
-  smallest_flavor    = "XS"
-  biggest_flavor     = "XS"
+  max_instance_count = 4
+  smallest_flavor    = "pico"
+  biggest_flavor     = "M"
 
   environment = {
     S3_BUCKET   = "excalidraw-scenes"
@@ -115,10 +117,13 @@ resource "clevercloud_nodejs" "storage" {
 
 ```hcl
 resource "clevercloud_nodejs" "room" {
-  name            = "excalidraw-room"
-  region          = var.region
-  smallest_flavor = "XS"
-  biggest_flavor  = "XS"
+  name               = "excalidraw.room"
+  region             = var.region
+  min_instance_count = 1
+  max_instance_count = 4
+  smallest_flavor    = "pico"
+  biggest_flavor     = "M"
+  sticky_sessions    = true   # WebSocket clients must stick to one instance
 
   environment = {
     CORS_ALLOW_ORIGIN = "https://${var.domain}"
@@ -130,10 +135,12 @@ resource "clevercloud_nodejs" "room" {
 
 ```hcl
 resource "clevercloud_static" "frontend" {
-  name            = "excalidraw-frontend"
-  region          = var.region
-  smallest_flavor = "XS"
-  biggest_flavor  = "XS"
+  name               = "excalidraw.frontend"
+  region             = var.region
+  min_instance_count = 1
+  max_instance_count = 4
+  smallest_flavor    = "nano"  # static-apache doesn't accept "pico" — smallest valid is "nano"
+  biggest_flavor     = "M"
 
   environment = {
     CC_PRE_BUILD_HOOK            = "yarn install --frozen-lockfile && yarn build:app"

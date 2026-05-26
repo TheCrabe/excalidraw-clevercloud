@@ -1,10 +1,9 @@
-# Nested clones — each has its own remote on TheCrabe/excalidraw[-room|-mcp]
-frontend/
-room/
-mcp/
-
-# Storage backend deps (tracked: source + package.json, not built artifacts)
-storage/node_modules/
+# Per-app working dirs — each lives as its own deploy repo, follow the tutorial to (re)create
+# (frontend/room/mcp are symlinks to forks; storage is bootstrapped from tutorial 02)
+frontend
+room
+mcp
+storage
 
 # Terraform
 terraform/.terraform/

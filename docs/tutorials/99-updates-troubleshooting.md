@@ -10,7 +10,7 @@ git push origin master          # update your fork
 git push clever master          # redeploy on CC
 ```
 
-Same flow for `room/` and `mcp/`.
+Same flow for `room/`.
 
 If you carry local commits (env tweaks, branding), prefer `git rebase upstream/master` to keep history linear.
 
@@ -18,8 +18,8 @@ If you carry local commits (env tweaks, branding), prefer `git rebase upstream/m
 
 ```sh
 curl -I https://draw.example.com                              # 200
-curl -I https://excalidraw-storage.cleverapps.io/health       # 200
-curl -I "https://excalidraw-room.cleverapps.io/socket.io/?EIO=4&transport=polling"   # 200
+curl -I https://excalidraw.storage.cleverapps.io/health       # 200
+curl -I "https://excalidraw.room.cleverapps.io/socket.io/?EIO=4&transport=polling"   # 200
 ```
 
 Open the frontend in two browser windows → **+ Share** → live cursor + edits should sync.
@@ -31,12 +31,12 @@ Your backends are filtering `Origin`. Check `CORS_ORIGIN` (storage) and `CORS_AL
 
 ### "WebSocket connection failed"
 - Frontend's `VITE_APP_WS_SERVER_URL` was wrong at build time → rebuild after fixing `.env.production`.
-- The room app crashed — `clever logs --app excalidraw-room`.
+- The room app crashed — `clever logs --app excalidraw.room`.
 
 ### "Failed to save scene" on Share
 - `VITE_APP_BACKEND_V2_POST_URL` wrong at build time.
-- Cellar bucket doesn't exist → re-run `aws s3 mb`.
-- Backend can't reach Cellar → `clever logs --app excalidraw-storage` and check `CELLAR_ADDON_*` envs.
+- Cellar bucket doesn't exist → re-run `node init-bucket.js` from `storage/`.
+- Backend can't reach Cellar → `clever logs --app excalidraw.storage` and check `CELLAR_ADDON_*` envs.
 
 ### Build fails on Clever (frontend)
 `yarn install` timeouts on small instance? Bump flavor temporarily:
@@ -53,7 +53,7 @@ Provider 1.11 changed a few resource attribute names from 1.9. Check the [regist
 
 ```sh
 clever logs                          # tail current app's logs
-clever logs --app excalidraw-room    # tail by name
+clever logs --app excalidraw.room    # tail by name
 clever env                           # show env vars
 clever restart                       # restart without redeploy
 clever scale --flavor S              # change instance size
@@ -65,7 +65,6 @@ clever activity                      # deployment history
 
 - [Excalidraw](https://github.com/excalidraw/excalidraw)
 - [excalidraw-room](https://github.com/excalidraw/excalidraw-room)
-- [Official MCP](https://github.com/excalidraw/excalidraw-mcp)
 - [Clever Cloud Terraform provider](https://registry.terraform.io/providers/CleverCloud/clevercloud/latest/docs)
 - [Clever Cloud Terraform GitHub](https://github.com/CleverCloud/terraform-provider-clevercloud)
 - [Cellar add-on docs](https://www.clever.cloud/developers/doc/addons/cellar/)
